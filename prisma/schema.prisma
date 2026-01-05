@@ -1,0 +1,125 @@
+// Prisma schema for GiftWishList
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// User model - identified by phone number
+model User {
+  id            String   @id @default(cuid())
+  phoneNumber   String   @unique
+  displayName   String
+  defaultGroupId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  defaultGroup    Group?            @relation("DefaultGroup", fields: [defaultGroupId], references: [id], onDelete: SetNull)
+  ownedGroups     Group[]           @relation("GroupOwner")
+  memberships     GroupMembership[]
+  lists           List[]
+  purchases       Purchase[]
+
+  @@index([phoneNumber])
+}
+
+// List model - a collection of wishlist items owned by a user
+model List {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items             WishlistItem[]
+  groupMemberships  GroupMembership[]
+
+  @@index([userId])
+}
+
+// Group model - a collection of users sharing wishlists
+model Group {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique  // 8-character invite code
+  ownerId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  owner            User              @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members          GroupMembership[]
+  usersWithDefault User[]            @relation("DefaultGroup")
+
+  @@index([code])
+}
+
+// GroupMembership - join table for users and groups
+model GroupMembership {
+  id       String         @id @default(cuid())
+  userId   String
+  groupId  String
+  listId   String         // Which list this user shows to this group
+  role     MembershipRole @default(MEMBER)
+  joinedAt DateTime       @default(now())
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  list  List  @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+  @@index([userId])
+  @@index([groupId])
+  @@index([listId])
+}
+
+enum MembershipRole {
+  OWNER
+  MEMBER
+}
+
+// WishlistItem - a gift wish belonging to a list
+model WishlistItem {
+  id        String   @id @default(cuid())
+  listId    String
+  url       String
+  title     String
+  siteName  String?  // Display name of the store (e.g., "Amazon.com", "Target")
+  imageUrl  String?
+  price     String?  // Stored as string for display flexibility
+  notes     String?  // User's notes (size, color, preferences)
+  priority  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  list     List      @relation(fields: [listId], references: [id], onDelete: Cascade)
+  purchase Purchase?
+
+  @@unique([listId, url])
+  @@index([listId])
+}
+
+// Purchase - tracks who bought what (hidden from the wisher)
+model Purchase {
+  id                String   @id @default(cuid())
+  wishlistItemId    String   @unique
+  purchasedByUserId String
+  purchasedAt       DateTime @default(now())
+  buyerNotes        String?  // Notes visible to other buyers only
+
+  // Relations
+  wishlistItem WishlistItem @relation(fields: [wishlistItemId], references: [id], onDelete: Cascade)
+  purchasedBy  User         @relation(fields: [purchasedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([purchasedByUserId])
+}
