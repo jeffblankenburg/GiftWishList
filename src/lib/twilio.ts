@@ -3,6 +3,7 @@ import twilio from "twilio";
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 
 if (!accountSid || !authToken || !verifyServiceSid) {
   console.warn(
@@ -11,6 +12,8 @@ if (!accountSid || !authToken || !verifyServiceSid) {
 }
 
 const client = accountSid && authToken ? twilio(accountSid, authToken) : null;
+
+export { twilioPhoneNumber };
 
 export async function sendVerificationCode(phoneNumber: string): Promise<{
   success: boolean;
@@ -60,4 +63,40 @@ export async function checkVerificationCode(
     console.error("Failed to verify code:", error);
     return { success: false, error: "Invalid or expired code" };
   }
+}
+
+export async function sendSms(
+  to: string,
+  body: string
+): Promise<{ success: boolean; error?: string }> {
+  console.log(`sendSms called: to=${to}, body=${body.substring(0, 50)}...`);
+
+  if (!client || !twilioPhoneNumber) {
+    console.error("SMS service not configured - client:", !!client, "phone:", !!twilioPhoneNumber);
+    return { success: false, error: "SMS service not configured" };
+  }
+
+  try {
+    console.log(`Sending SMS from ${twilioPhoneNumber} to ${to}`);
+    const message = await client.messages.create({
+      to,
+      from: twilioPhoneNumber,
+      body,
+    });
+    console.log(`SMS sent successfully: ${message.sid}`);
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send SMS:", error);
+    return { success: false, error: "Failed to send SMS" };
+  }
+}
+
+// Validate that a request came from Twilio
+export function validateTwilioRequest(
+  authToken: string,
+  signature: string,
+  url: string,
+  params: Record<string, string>
+): boolean {
+  return twilio.validateRequest(authToken, signature, url, params);
 }

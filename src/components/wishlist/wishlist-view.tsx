@@ -45,6 +45,7 @@ interface FetchedMeta {
   siteName: string | null;
   imageUrl: string | null;
   price: string | null;
+  url?: string; // May be modified (e.g., with affiliate tag)
 }
 
 export function WishlistView({ list, userName }: WishlistViewProps) {
@@ -99,6 +100,10 @@ export function WishlistView({ list, userName }: WishlistViewProps) {
         setSiteName(data.siteName);
         setImageUrl(data.imageUrl);
         setPrice(data.price);
+        // Use modified URL if returned (e.g., with affiliate tag)
+        if (data.url) {
+          setUrl(data.url);
+        }
       }
       setAddStep("preview");
     } catch {
@@ -214,9 +219,11 @@ export function WishlistView({ list, userName }: WishlistViewProps) {
                   )}
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium truncate">{item.title}</h3>
-                    {item.price && (
-                      <p className="text-sm text-muted-foreground">{item.price}</p>
-                    )}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      {item.siteName && <span>{item.siteName}</span>}
+                      {item.siteName && item.price && <span>·</span>}
+                      {item.price && <span>{item.price}</span>}
+                    </div>
                     {item.notes && (
                       <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                         {item.notes}
@@ -314,9 +321,11 @@ export function WishlistView({ list, userName }: WishlistViewProps) {
                     disabled={isLoading}
                   />
                 </div>
-                {price && (
-                  <div className="text-sm text-muted-foreground">
-                    Price: {price}
+                {(siteName || price) && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    {siteName && <span>{siteName}</span>}
+                    {siteName && price && <span>·</span>}
+                    {price && <span>{price}</span>}
                   </div>
                 )}
                 <div className="space-y-2">
