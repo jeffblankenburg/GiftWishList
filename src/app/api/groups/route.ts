@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { db, PrismaTransactionClient } from "@/lib/db";
 import { generateInviteCode } from "@/lib/utils/generate-code";
 
 // GET /api/groups - List user's groups
@@ -26,7 +26,7 @@ export async function GET() {
       orderBy: { joinedAt: "desc" },
     });
 
-    const groups = memberships.map((m) => ({
+    const groups = memberships.map((m: typeof memberships[number]) => ({
       id: m.group.id,
       name: m.group.name,
       code: m.group.code,
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create group and membership in a transaction
-    const group = await db.$transaction(async (tx) => {
+    const group = await db.$transaction(async (tx: PrismaTransactionClient) => {
       const newGroup = await tx.group.create({
         data: {
           name: name.trim(),

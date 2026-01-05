@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { db, PrismaTransactionClient } from "@/lib/db";
 
 // POST /api/groups/join - Join a group by code
 export async function POST(request: NextRequest) {
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create membership
-    await db.$transaction(async (tx) => {
+    await db.$transaction(async (tx: PrismaTransactionClient) => {
       await tx.groupMembership.create({
         data: {
           userId: user.id,
