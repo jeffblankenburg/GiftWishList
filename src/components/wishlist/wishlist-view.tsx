@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -268,6 +269,9 @@ export function WishlistView({ list, userName }: WishlistViewProps) {
             <>
               <DialogHeader>
                 <DialogTitle>Add to wishlist</DialogTitle>
+                <DialogDescription className="sr-only">
+                  Paste a product URL to add it to your wishlist
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleUrlSubmit} className="space-y-4">
                 <div className="space-y-2">
@@ -299,6 +303,9 @@ export function WishlistView({ list, userName }: WishlistViewProps) {
             <>
               <DialogHeader>
                 <DialogTitle>Confirm item</DialogTitle>
+                <DialogDescription className="sr-only">
+                  Review and confirm the item details before adding to your wishlist
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddItem} className="space-y-4">
                 {/* Preview image */}
