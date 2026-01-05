@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Gift, Plus, Users, LogOut, Loader2, ExternalLink, Trash2 } from "lucide-react";
+import { Gift, Plus, Users, LogOut, Loader2, Trash2 } from "lucide-react";
 
 interface WishlistItem {
   id: string;
@@ -209,46 +209,43 @@ export function WishlistView({ list, userName }: WishlistViewProps) {
             <Card key={item.id} className="overflow-hidden">
               <CardContent className="p-4">
                 <div className="flex gap-3">
-                  {item.imageUrl && (
-                    <div className="w-16 h-16 rounded bg-muted flex-shrink-0 overflow-hidden">
-                      <img
-                        src={item.imageUrl}
-                        alt={item.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium truncate">{item.title}</h3>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      {item.siteName && <span>{item.siteName}</span>}
-                      {item.siteName && item.price && <span>·</span>}
-                      {item.price && <span>{item.price}</span>}
-                    </div>
-                    {item.notes && (
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                        {item.notes}
-                      </p>
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex gap-3 flex-1 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
+                  >
+                    {item.imageUrl && (
+                      <div className="w-16 h-16 rounded bg-muted flex-shrink-0 overflow-hidden">
+                        <img
+                          src={item.imageUrl}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                     )}
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => window.open(item.url, "_blank")}
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => handleDeleteItem(item.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium truncate">{item.title}</h3>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        {item.siteName && <span>{item.siteName}</span>}
+                        {item.siteName && item.price && <span>·</span>}
+                        {item.price && <span>{item.price}</span>}
+                      </div>
+                      {item.notes && (
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                          {item.notes}
+                        </p>
+                      )}
+                    </div>
+                  </a>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive flex-shrink-0"
+                    onClick={() => handleDeleteItem(item.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
