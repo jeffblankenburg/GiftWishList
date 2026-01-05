@@ -25,7 +25,7 @@ export default async function GroupsPage() {
     orderBy: { joinedAt: "desc" },
   });
 
-  const groups = memberships.map((m) => ({
+  const groups = memberships.map((m: typeof memberships[number]) => ({
     id: m.group.id,
     name: m.group.name,
     memberCount: m.group._count.members,
