@@ -45,7 +45,7 @@ export default async function WishlistPage() {
         list={{
           id: defaultList.id,
           name: defaultList.name,
-          items: defaultList.items.map((item) => ({
+          items: defaultList.items.map((item: typeof defaultList.items[number]) => ({
             id: item.id,
             url: item.url,
             title: item.title,
