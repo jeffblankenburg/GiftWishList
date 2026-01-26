@@ -3,9 +3,20 @@
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Copy, Check, Gift, ShoppingBag, Crown } from 'lucide-react'
+import { ArrowLeft, Copy, Check, Gift, ShoppingBag, Crown, Trash2, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { BottomNav } from '@/components/BottomNav'
 import { createClient } from '@/lib/supabase/client'
 
@@ -32,6 +43,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [copiedCode, setCopiedCode] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -109,6 +121,38 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
     await navigator.clipboard.writeText(group.code)
     setCopiedCode(true)
     setTimeout(() => setCopiedCode(false), 2000)
+  }
+
+  async function handleLeaveGroup() {
+    if (!group) return
+    setActionLoading(true)
+    try {
+      const res = await fetch(`/api/groups/${group.id}/leave`, {
+        method: 'POST',
+      })
+      if (res.ok) {
+        router.push('/groups')
+      }
+    } catch (error) {
+      console.error('Failed to leave group:', error)
+    }
+    setActionLoading(false)
+  }
+
+  async function handleDeleteGroup() {
+    if (!group) return
+    setActionLoading(true)
+    try {
+      const res = await fetch(`/api/groups/${group.id}`, {
+        method: 'DELETE',
+      })
+      if (res.ok) {
+        router.push('/groups')
+      }
+    } catch (error) {
+      console.error('Failed to delete group:', error)
+    }
+    setActionLoading(false)
   }
 
   function formatPhone(phone: string) {
@@ -215,6 +259,71 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
             </Link>
           )
         })}
+
+        {/* Leave/Delete Group Section */}
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          {group.owner_id === currentUserId ? (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  disabled={actionLoading}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Group
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Group</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete &quot;{group.name}&quot;? This will permanently remove the group, all members&apos; wishlists, and purchase history. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteGroup}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                  disabled={actionLoading}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Leave Group
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Leave Group</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to leave &quot;{group.name}&quot;? Your wishlist items in this group will be deleted. You can rejoin later with the invite code.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleLeaveGroup}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Leave
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       </main>
 
       <BottomNav />
