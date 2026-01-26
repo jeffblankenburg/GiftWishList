@@ -1,105 +1,80 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
-import { db, PrismaTransactionClient } from "@/lib/db";
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
-// POST /api/groups/join - Join a group by code
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const user = await getSession();
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { code } = await request.json();
+    const { code } = await request.json()
 
-    if (!code || code.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Invite code is required" },
-        { status: 400 }
-      );
+    if (!code || typeof code !== 'string' || code.trim().length === 0) {
+      return NextResponse.json({ error: 'Invite code is required' }, { status: 400 })
     }
 
-    const normalizedCode = code.trim().toUpperCase();
+    const normalizedCode = code.trim().toUpperCase()
 
-    // Find the group
-    const group = await db.group.findUnique({
-      where: { code: normalizedCode },
-    });
+    // Ensure user profile exists
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', user.id)
+      .single()
 
-    if (!group) {
-      return NextResponse.json(
-        { error: "Invalid invite code" },
-        { status: 404 }
-      );
+    if (!existingUser) {
+      // Create user profile
+      await supabase
+        .from('users')
+        .insert({
+          id: user.id,
+          phone: user.phone || '',
+        })
+    }
+
+    // Find the group by code
+    const { data: group, error: groupError } = await supabase
+      .from('groups')
+      .select('id, name')
+      .eq('code', normalizedCode)
+      .single()
+
+    if (groupError || !group) {
+      return NextResponse.json({ error: 'Invalid invite code' }, { status: 404 })
     }
 
     // Check if already a member
-    const existingMembership = await db.groupMembership.findUnique({
-      where: {
-        userId_groupId: {
-          userId: user.id,
-          groupId: group.id,
-        },
-      },
-    });
+    const { data: existingMembership } = await supabase
+      .from('group_memberships')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('group_id', group.id)
+      .single()
 
     if (existingMembership) {
-      return NextResponse.json(
-        { error: "You're already a member of this group" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'You are already a member of this group' }, { status: 400 })
     }
 
-    // Get user's default list
-    const defaultList = await db.list.findFirst({
-      where: { userId: user.id, isDefault: true },
-    });
+    // Add user as a member
+    const { error: memberError } = await supabase
+      .from('group_memberships')
+      .insert({
+        user_id: user.id,
+        group_id: group.id,
+        role: 'member',
+      })
 
-    if (!defaultList) {
-      return NextResponse.json(
-        { error: "No default list found. Please contact support." },
-        { status: 500 }
-      );
+    if (memberError) {
+      console.error('Join group error:', memberError)
+      return NextResponse.json({ error: 'Failed to join group' }, { status: 500 })
     }
 
-    // Create membership
-    await db.$transaction(async (tx: PrismaTransactionClient) => {
-      await tx.groupMembership.create({
-        data: {
-          userId: user.id,
-          groupId: group.id,
-          listId: defaultList.id,
-          role: "MEMBER",
-        },
-      });
-
-      // Set as default group if user doesn't have one
-      const currentUser = await tx.user.findUnique({
-        where: { id: user.id },
-        select: { defaultGroupId: true },
-      });
-
-      if (!currentUser?.defaultGroupId) {
-        await tx.user.update({
-          where: { id: user.id },
-          data: { defaultGroupId: group.id },
-        });
-      }
-    });
-
-    return NextResponse.json({
-      success: true,
-      group: {
-        id: group.id,
-        name: group.name,
-      },
-    });
+    return NextResponse.json({ group })
   } catch (error) {
-    console.error("Error joining group:", error);
-    return NextResponse.json(
-      { error: "Failed to join group" },
-      { status: 500 }
-    );
+    console.error('Join group error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

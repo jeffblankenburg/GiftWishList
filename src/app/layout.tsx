@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ServiceWorkerInit } from "@/components/ServiceWorkerInit";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,8 +14,27 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Group Gift List",
-  description: "Share wishlists with family and friends while keeping purchases private",
+  title: "GiftWishList",
+  description: "Share wishlists with family and friends. Coordinate gifts without spoiling the surprise.",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/icons/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "GiftWishList",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#e11d48",
 };
 
 export default function RootLayout({
@@ -27,6 +47,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <ServiceWorkerInit />
         {children}
       </body>
     </html>
