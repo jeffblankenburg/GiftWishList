@@ -48,38 +48,40 @@ export default function GroupsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    // Get groups the user belongs to
+    // Get group IDs the user belongs to
     const { data: memberships } = await supabase
       .from('group_memberships')
-      .select(`
-        group_id,
-        role,
-        groups (
-          id,
-          name,
-          code,
-          owner_id
-        )
-      `)
+      .select('group_id')
       .eq('user_id', user.id)
 
-    if (memberships) {
-      // Get member counts for each group
-      const groupsWithCounts = await Promise.all(
-        memberships.map(async (m) => {
-          const group = m.groups as unknown as { id: string; name: string; code: string; owner_id: string }
-          const { count } = await supabase
-            .from('group_memberships')
-            .select('*', { count: 'exact', head: true })
-            .eq('group_id', group.id)
+    if (memberships && memberships.length > 0) {
+      const groupIds = memberships.map(m => m.group_id)
 
-          return {
-            ...group,
-            member_count: count || 0,
-          }
-        })
-      )
-      setGroups(groupsWithCounts)
+      // Get group details separately
+      const { data: groupsData } = await supabase
+        .from('groups')
+        .select('id, name, code, owner_id')
+        .in('id', groupIds)
+
+      if (groupsData) {
+        // Get member counts for each group
+        const groupsWithCounts = await Promise.all(
+          groupsData.map(async (group) => {
+            const { count } = await supabase
+              .from('group_memberships')
+              .select('*', { count: 'exact', head: true })
+              .eq('group_id', group.id)
+
+            return {
+              ...group,
+              member_count: count || 0,
+            }
+          })
+        )
+        setGroups(groupsWithCounts)
+      }
+    } else {
+      setGroups([])
     }
     setLoading(false)
   }
