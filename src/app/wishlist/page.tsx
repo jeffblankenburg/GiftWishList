@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, ExternalLink, Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import { Plus, Trash2, ExternalLink, Loader2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -237,16 +238,23 @@ export default function WishlistPage() {
               <p className="text-sm text-gray-500">{groups[0].name}</p>
             )}
           </div>
-          <Dialog open={addOpen} onOpenChange={(open) => {
-            setAddOpen(open)
-            if (!open) resetForm()
-          }}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="bg-rose-600 hover:bg-rose-700">
-                <Plus className="w-4 h-4 mr-1" />
-                Add
+          <div className="flex gap-2">
+            <Link href="/import">
+              <Button size="sm" variant="outline">
+                <Upload className="w-4 h-4 mr-1" />
+                Import
               </Button>
-            </DialogTrigger>
+            </Link>
+            <Dialog open={addOpen} onOpenChange={(open) => {
+              setAddOpen(open)
+              if (!open) resetForm()
+            }}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="bg-rose-600 hover:bg-rose-700">
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add to Wishlist</DialogTitle>
@@ -324,15 +332,22 @@ export default function WishlistPage() {
                 </Button>
               </form>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
       </header>
 
       <main className="p-4 space-y-3">
         {items.length === 0 ? (
-          <div className="text-center py-12">
+          <div className="text-center py-12 space-y-4">
             <p className="text-gray-600">Your wishlist is empty</p>
-            <p className="text-gray-500 text-sm mt-1">Tap &quot;Add&quot; to start adding items</p>
+            <p className="text-gray-500 text-sm">Tap &quot;Add&quot; to add items, or import from Amazon</p>
+            <Link href="/import">
+              <Button variant="outline" className="mt-2">
+                <Upload className="w-4 h-4 mr-2" />
+                Import from Amazon
+              </Button>
+            </Link>
           </div>
         ) : (
           items.map((item) => (
