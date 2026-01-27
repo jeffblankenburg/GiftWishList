@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
   if (error) {
     console.error('Insert error:', error)
-    return NextResponse.json({ error: 'Failed to save items' }, { status: 500 })
+    return NextResponse.json({ error: `Failed to save items: ${error.message}` }, { status: 500 })
   }
 
   return NextResponse.json({
