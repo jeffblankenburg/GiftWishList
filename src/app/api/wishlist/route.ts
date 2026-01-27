@@ -10,20 +10,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const groupId = searchParams.get('groupId')
-
-    let query = supabase
+    // Get all items for the current user (no group filter needed)
+    const { data: items, error } = await supabase
       .from('wishlist_items')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-
-    if (groupId) {
-      query = query.eq('group_id', groupId)
-    }
-
-    const { data: items, error } = await query
 
     if (error) {
       console.error('Fetch wishlist error:', error)
@@ -47,34 +39,17 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { groupId, title, url, siteName, imageUrl, price, notes } = body
-
-    if (!groupId) {
-      return NextResponse.json({ error: 'Group ID is required' }, { status: 400 })
-    }
+    const { title, url, siteName, imageUrl, price, notes } = body
 
     if (!title || typeof title !== 'string' || title.trim().length === 0) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
 
-    // Verify user is a member of the group
-    const { data: membership } = await supabase
-      .from('group_memberships')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('group_id', groupId)
-      .single()
-
-    if (!membership) {
-      return NextResponse.json({ error: 'You are not a member of this group' }, { status: 403 })
-    }
-
-    // Create the wishlist item
+    // Create the wishlist item (no group_id - visible to all groups by default)
     const { data: item, error } = await supabase
       .from('wishlist_items')
       .insert({
         user_id: user.id,
-        group_id: groupId,
         title: title.trim(),
         url: url || null,
         site_name: siteName || null,

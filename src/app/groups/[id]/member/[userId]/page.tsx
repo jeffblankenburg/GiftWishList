@@ -87,7 +87,7 @@ export default function MemberWishlistPage({
       setMember(memberData)
     }
 
-    // Get wishlist items with purchase info
+    // Get all wishlist items for this member
     // Note: RLS will hide purchase data if viewing own items
     const { data: itemsData } = await supabase
       .from('wishlist_items')
@@ -100,13 +100,23 @@ export default function MemberWishlistPage({
         )
       `)
       .eq('user_id', memberId)
-      .eq('group_id', groupId)
       .order('created_at', { ascending: false })
 
-    if (itemsData) {
+    // Get any exclusions for this group
+    const { data: exclusions } = await supabase
+      .from('wishlist_item_exclusions')
+      .select('item_id')
+      .eq('group_id', groupId)
+
+    const excludedItemIds = new Set(exclusions?.map(e => e.item_id) || [])
+
+    // Filter out excluded items
+    const filteredItems = itemsData?.filter(item => !excludedItemIds.has(item.id)) || []
+
+    if (filteredItems.length > 0) {
       // Get buyer names for purchased items
       const itemsWithBuyerNames = await Promise.all(
-        itemsData.map(async (item) => {
+        filteredItems.map(async (item) => {
           const purchase = item.purchases?.[0] || null
           if (purchase) {
             const { data: buyer } = await supabase

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Upload, Loader2, Check, Package } from 'lucide-react'
@@ -8,15 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { BottomNav } from '@/components/BottomNav'
-import { createClient } from '@/lib/supabase/client'
 
 interface ImportItem {
   title: string
@@ -26,54 +18,14 @@ interface ImportItem {
   selected: boolean
 }
 
-interface Group {
-  id: string
-  name: string
-}
-
 export default function ImportPage() {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [items, setItems] = useState<ImportItem[]>([])
-  const [groups, setGroups] = useState<Group[]>([])
-  const [selectedGroup, setSelectedGroup] = useState<string>('')
   const [success, setSuccess] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
-
-  useEffect(() => {
-    loadGroups()
-  }, [])
-
-  async function loadGroups() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/login')
-      return
-    }
-
-    const { data: memberships } = await supabase
-      .from('group_memberships')
-      .select('group_id')
-      .eq('user_id', user.id)
-
-    if (memberships && memberships.length > 0) {
-      const groupIds = memberships.map(m => m.group_id)
-      const { data: groupsData } = await supabase
-        .from('groups')
-        .select('id, name')
-        .in('id', groupIds)
-
-      if (groupsData) {
-        setGroups(groupsData)
-        if (groupsData.length === 1) {
-          setSelectedGroup(groupsData[0].id)
-        }
-      }
-    }
-  }
 
   async function handleFetch(e: React.FormEvent) {
     e.preventDefault()
@@ -110,11 +62,6 @@ export default function ImportPage() {
   }
 
   async function handleImport() {
-    if (!selectedGroup) {
-      setError('Please select a group')
-      return
-    }
-
     const selectedItems = items.filter(item => item.selected)
     if (selectedItems.length === 0) {
       setError('Please select at least one item')
@@ -128,10 +75,7 @@ export default function ImportPage() {
       const res = await fetch('/api/import/amazon/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: selectedItems,
-          groupId: selectedGroup,
-        }),
+        body: JSON.stringify({ items: selectedItems }),
       })
 
       const data = await res.json()
@@ -225,22 +169,6 @@ export default function ImportPage() {
           </form>
         ) : (
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Import to Group</Label>
-              <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a group" />
-                </SelectTrigger>
-                <SelectContent>
-                  {groups.map((group) => (
-                    <SelectItem key={group.id} value={group.id}>
-                      {group.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-600">
                 {selectedCount} of {items.length} items selected
@@ -275,8 +203,9 @@ export default function ImportPage() {
                   onClick={() => toggleItem(index)}
                 >
                   <CardContent className="p-3 flex items-center gap-3">
-                    <div className="w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0
-                      ${item.selected ? 'bg-rose-600 border-rose-600' : 'border-gray-300'}">
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                      item.selected ? 'bg-rose-600 border-rose-600' : 'border-gray-300'
+                    }`}>
                       {item.selected && <Check className="w-3 h-3 text-white" />}
                     </div>
                     {item.image ? (
@@ -305,7 +234,7 @@ export default function ImportPage() {
 
             <Button
               onClick={handleImport}
-              disabled={saving || selectedCount === 0 || !selectedGroup}
+              disabled={saving || selectedCount === 0}
               className="w-full bg-rose-600 hover:bg-rose-700"
             >
               {saving ? (
