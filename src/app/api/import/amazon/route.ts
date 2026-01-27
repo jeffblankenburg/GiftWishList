@@ -142,19 +142,9 @@ function parseAmazonWishlist(html: string): AmazonItem[] {
       }
     }
 
-    // Extract image
-    let image: string | null = null
-    const $img = $el.find('img[src*="images-amazon"]').first()
-    if ($img.length) {
-      image = $img.attr('src') || null
-      // Try to get a larger image by modifying the URL
-      if (image) {
-        image = image.replace(/\._.*_\./, '._SL500_.')
-      }
-    }
-
-    // Extract product URL
+    // Extract product URL and ASIN first (we'll use ASIN for image fallback)
     let productUrl: string | null = null
+    let asin: string | null = null
     const $link = $el.find('a[href*="/dp/"]').first()
     if ($link.length) {
       const href = $link.attr('href')
@@ -162,9 +152,45 @@ function parseAmazonWishlist(html: string): AmazonItem[] {
         // Extract ASIN and create clean URL
         const asinMatch = href.match(/\/dp\/([A-Z0-9]{10})/)
         if (asinMatch) {
-          productUrl = `https://www.amazon.com/dp/${asinMatch[1]}`
+          asin = asinMatch[1]
+          productUrl = `https://www.amazon.com/dp/${asin}`
         }
       }
+    }
+
+    // Extract image - try multiple approaches
+    let image: string | null = null
+    const $img = $el.find('img').first()
+    if ($img.length) {
+      // Try various attributes where Amazon might store the image URL
+      image = $img.attr('data-a-dynamic-image') ||
+              $img.attr('data-src') ||
+              $img.attr('data-old-hires') ||
+              $img.attr('src') ||
+              null
+
+      // data-a-dynamic-image contains JSON, extract first URL
+      if (image && image.startsWith('{')) {
+        try {
+          const imageData = JSON.parse(image)
+          const urls = Object.keys(imageData)
+          if (urls.length > 0) {
+            image = urls[0]
+          }
+        } catch {
+          image = null
+        }
+      }
+
+      // Clean up and get larger image
+      if (image && image.includes('amazon')) {
+        image = image.replace(/\._.*_\./, '._SL500_.')
+      }
+    }
+
+    // Fallback: construct image URL from ASIN
+    if (!image && asin) {
+      image = `https://images-na.ssl-images-amazon.com/images/P/${asin}.01._SL500_.jpg`
     }
 
     items.push({
